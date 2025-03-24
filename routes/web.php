@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\TaskController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -8,13 +9,25 @@ Route::get('/', function () {
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    // Dashboard with task statistics
     Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
+        $user = auth()->user();
+        $recentTasks = $user->tasks()->latest()->take(5)->get();
+
+        $stats = [
+            'totalTasks' => $user->tasks()->count(),
+            'completedTasks' => $user->tasks()->where('completed', true)->count(),
+            'pendingTasks' => $user->tasks()->where('completed', false)->count(),
+        ];
+
+        return Inertia::render('dashboard', [
+            'recentTasks' => $recentTasks,
+            'stats' => $stats,
+        ]);
     })->name('dashboard');
 
-    Route::get('tareas', function () {
-        return Inertia::render('tareas/index');
-    })->name('tareas.index');
+    // Task routes
+    Route::resource('tareas', TaskController::class);
 });
 
 require __DIR__.'/settings.php';
